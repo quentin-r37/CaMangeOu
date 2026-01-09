@@ -1,133 +1,99 @@
 import React, { useState } from 'react';
-import { Header } from './components/Header';
-import { LoginScreen } from './components/LoginScreen';
-import { HomeScreen } from './components/HomeScreen';
-import { PopularScreen } from './components/PopularScreen';
-import { SearchScreen } from './components/SearchScreen';
-import { SurpriseScreen } from './components/SurpriseScreen';
-import { RestaurantDetailScreen } from './components/RestaurantDetailScreen';
-import { ConfirmationScreen } from './components/ConfirmationScreen';
-import { Restaurant, User } from './types';
-import { mockUsers } from './utils';
+import { Home } from './pages/Home';
+import { Login } from './pages/Login';
+import { RestaurantSearch } from './pages/RestaurantSearch';
+import { RestaurantDetails } from './pages/RestaurantDetails';
+import { GroupView } from './pages/GroupView';
+import { Navigation } from './components/Navigation';
+import { type User, type Restaurant, type Vote } from './types';
 
-type ScreenType =
-  | 'login'
-  | 'home'
-  | 'popular'
-  | 'search'
-  | 'surprise'
-  | string;
-
-export const App: React.FC = () => {
-  const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState<'login' | 'home' | 'search' | 'details' | 'groups'>('login');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [confirmationRestaurant, setConfirmationRestaurant] = useState<Restaurant | null>(null);
+  const [userVotes, setUserVotes] = useState<Vote[]>([]);
 
-  const handleLogin = (email: string) => {
-    // Find user by email or use first user for demo
-    const user = mockUsers.find((u) => u.email === email) || mockUsers[0];
+  const handleLogin = (user: User) => {
     setCurrentUser(user);
-    setCurrentScreen('home');
+    setIsAuthenticated(true);
+    setCurrentPage('home');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setCurrentScreen('login');
-    setSelectedRestaurant(null);
+    setIsAuthenticated(false);
+    setCurrentPage('login');
+    setUserVotes([]);
   };
 
-  const handleNavigate = (screen: string) => {
-    setCurrentScreen(screen);
+  const handleNavigate = (page: 'home' | 'search' | 'details' | 'groups') => {
+    setCurrentPage(page);
   };
 
-  const handleSelectRestaurant = (restaurant: Restaurant | null) => {
-    if (restaurant) {
-      setConfirmationRestaurant(restaurant);
-      setShowConfirmation(true);
-    } else {
-      setSelectedRestaurant(null);
+  const handleSelectRestaurant = (restaurant: Restaurant) => {
+    setSelectedRestaurant(restaurant);
+    setCurrentPage('details');
+  };
+
+  const handleVoteRestaurant = (restaurant: Restaurant) => {
+    if (currentUser) {
+      setUserVotes([
+        {
+          userId: currentUser.id,
+          restaurantId: restaurant.id,
+          restaurantName: restaurant.name,
+          timestamp: new Date(),
+        },
+      ]);
+      setCurrentPage('home');
     }
   };
 
-  const handleConfirmationComplete = () => {
-    if (confirmationRestaurant) {
-      setSelectedRestaurant(confirmationRestaurant);
-    }
-    setShowConfirmation(false);
-    setCurrentScreen('home');
-  };
-
-  // Login Screen
-  if (currentScreen === 'login') {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
-  // Confirmation Screen
-  if (showConfirmation && confirmationRestaurant) {
-    return (
-      <ConfirmationScreen
-        restaurant={confirmationRestaurant}
-        onComplete={handleConfirmationComplete}
-      />
-    );
-  }
-
-  // Main App Layout
-  if (!currentUser) {
-    return <LoginScreen onLogin={handleLogin} />;
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header currentUser={{ name: currentUser.name, avatar: currentUser.avatar }} onLogout={handleLogout} />
-
-      <main>
-        {currentScreen === 'home' && (
-          <HomeScreen
-            currentUser={currentUser}
+      {currentPage !== 'login' && (
+        <Navigation 
+          currentPage={currentPage} 
+          onNavigate={handleNavigate}
+          onLogout={handleLogout}
+          currentUser={currentUser}
+        />
+      )}
+      
+      <main className="pt-16">
+        {currentPage === 'home' && currentUser && (
+          <Home
+            user={currentUser}
+            userVotes={userVotes}
             onNavigate={handleNavigate}
-            selectedRestaurant={selectedRestaurant}
             onSelectRestaurant={handleSelectRestaurant}
           />
         )}
-
-        {currentScreen === 'popular' && (
-          <PopularScreen
-            currentUser={currentUser}
-            onBack={() => setCurrentScreen('home')}
+        {currentPage === 'search' && (
+          <RestaurantSearch
             onSelectRestaurant={handleSelectRestaurant}
           />
         )}
-
-        {currentScreen === 'search' && (
-          <SearchScreen
-            currentUser={currentUser}
-            onBack={() => setCurrentScreen('home')}
-            onSelectRestaurant={handleSelectRestaurant}
+        {currentPage === 'details' && selectedRestaurant && currentUser && (
+          <RestaurantDetails
+            restaurant={selectedRestaurant}
+            onVote={handleVoteRestaurant}
+            onBack={() => setCurrentPage('home')}
           />
         )}
-
-        {currentScreen === 'surprise' && (
-          <SurpriseScreen
-            currentUser={currentUser}
-            onBack={() => setCurrentScreen('home')}
+        {currentPage === 'groups' && currentUser && (
+          <GroupView
+            user={currentUser}
             onSelectRestaurant={handleSelectRestaurant}
-          />
-        )}
-
-        {currentScreen.startsWith('restaurant-') && (
-          <RestaurantDetailScreen
-            restaurantId={currentScreen.replace('restaurant-', '')}
-            currentUser={currentUser}
-            onBack={() => setCurrentScreen('home')}
-            onSelectRestaurant={handleSelectRestaurant}
+            onNavigate={handleNavigate}
           />
         )}
       </main>
     </div>
   );
-};
-
-export default App;
+}

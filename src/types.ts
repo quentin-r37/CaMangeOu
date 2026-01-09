@@ -3,7 +3,8 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
-  preferences: string[];
+  department: string;
+  company: string;
 }
 
 export interface Restaurant {
@@ -11,33 +12,37 @@ export interface Restaurant {
   name: string;
   cuisine: string;
   rating: number;
-  reviewCount: number;
-  image: string;
+  reviews: number;
   distance: number;
   address: string;
-  hours: string;
-  priceRange: string;
-  votes: number;
-  votedBy: User[];
+  phone: string;
+  hours: {
+    open: string;
+    close: string;
+  };
+  image: string;
+  priceRange: '$' | '$$' | '$$$' | '$$$$';
+  latitude: number;
+  longitude: number;
+  website?: string;
+  description?: string;
+  photos: string[];
 }
 
-export interface SearchFilters {
-  cuisine: string;
-  distance: number;
-  priceRange: string;
-  rating: number;
+export interface Vote {
+  userId: string;
+  restaurantId: string;
+  restaurantName: string;
+  timestamp: Date;
 }
 
 export interface GroupSession {
   id: string;
-  date: string;
+  name: string;
+  createdBy: string;
   participants: User[];
-  restaurantChoices: { [restaurantId: string]: User[] };
-}
-
-export interface HistoryEntry {
-  id: string;
-  restaurant: Restaurant;
-  date: string;
-  groupSize: number;
+  votes: {
+    [restaurantId: string]: string[];
+  };
+  createdAt: Date;
 }
